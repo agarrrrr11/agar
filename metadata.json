@@ -1,0 +1,6 @@
+{
+  "name": "Securify",
+  "description": "A high-performance full-screen hero section for Securify, a data-security SaaS landing page featuring fullscreen looping video and staggered typography.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
