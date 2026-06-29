@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Trash2, Edit2, Play, Pause, Compass, Heart, GraduationCap, Gamepad2, Volume2, VolumeX } from 'lucide-react';
+import { Plus, Trash2, Edit2, Play, Pause, Compass, Heart, GraduationCap, Gamepad2, Volume2, VolumeX, Sparkles, MessageSquare, Bot, Send, Key, X, RefreshCw } from 'lucide-react';
+import { askGemini } from './lib/gemini';
 
 interface Anime {
   id: string;
@@ -11,7 +12,7 @@ interface Anime {
 
 export default function App() {
   const [videoPlaying, setVideoPlaying] = useState(true);
-  const [activeTab, setActiveTab] = useState<'hobbies' | 'anime' | 'school' | 'game'>('hobbies');
+  const [activeTab, setActiveTab] = useState<'hobbies' | 'anime' | 'school' | 'game' | 'idol'>('hobbies');
   const [showAnimeModal, setShowAnimeModal] = useState(false);
   const [animeList, setAnimeList] = useState<Anime[]>(() => {
     const saved = localStorage.getItem('agar_anime_list');
@@ -24,6 +25,43 @@ export default function App() {
   const [newTitle, setNewTitle] = useState('');
   const [newRating, setNewRating] = useState('10/10');
   const [newGenre, setNewGenre] = useState('');
+
+  // Gemini API Key state
+  const [apiKey, setApiKey] = useState(() => {
+    return localStorage.getItem('agar_gemini_api_key') || '';
+  });
+  const [showKeyInput, setShowKeyInput] = useState(false);
+
+  // Idol Coach Chat States
+  const [idolMessages, setIdolMessages] = useState<{ sender: 'user' | 'bot'; text: string; time: string }[]>(() => {
+    const saved = localStorage.getItem('agar_idol_messages');
+    return saved ? JSON.parse(saved) : [
+      {
+        sender: 'bot',
+        text: "Намайг Мөнхбатын Баяржаргал гэдэг. UB Comedy клубийн стэнд-ап комедиан Баяраа байна. Циркийн жүжигчин, боксын тамирчин, маркетингийн мэргэжилтэй, тайзан дээр ч, амьдрал дээр ч байгаагаараа л байхыг хичээдэг залуу. Одоо хоёулаа энэ танилцуулгын хэсгийг ингээд дуусгаад, сонин сайхан руугаа орох уу? Надад ярих зөндөө сонин түүх, амьдралын зөвлөгөө байна. Чиний хувьд өнөөдөр яг ямар сэдэв сонирхож байна даа?",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ];
+  });
+  const [idolInput, setIdolInput] = useState('');
+  const [idolLoading, setIdolLoading] = useState(false);
+  const [idolError, setIdolError] = useState('');
+
+  // Me-AI Assistant Chat States
+  const [meMessages, setMeMessages] = useState<{ sender: 'user' | 'bot'; text: string; time: string }[]>(() => {
+    const saved = localStorage.getItem('agar_me_messages');
+    return saved ? JSON.parse(saved) : [
+      {
+        sender: 'bot',
+        text: "За, өөрийгөө бүтэн танилцуулъя! 😉\nНамайг Э. Агар гэдэг. Одоо 31-р сургуулийн 7-р ангид сурдаг, 153 см өндөртэй.\nМиний тухай товчхон хэлбэл:\nСпорт: Сагсан бөмбөг, хөлбөмбөг тоглох маш их дуртай. Спортоор хичээллэх нь намайг эрч хүчтэй болгодог юм.\nЗан чанар: Ер нь жаахан хөгжилтэй, нээлттэй яриатай талдаа хүүхэд. Бас хичээл номдоо анхаарч, ухаалаг байхыг хичээдэг.\nЧөлөөт цагаараа: Найзуудтайгаа уулзах, сонирхолтой шинэ зүйлс сурч мэдэх дуртай.\nМиний хуудсаар зочилж байгаад баярлалаа! Өөр мэдэхийг хүссэн зүйл байвал чөлөөтэй асуугаарай.",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ];
+  });
+  const [meInput, setMeInput] = useState('');
+  const [meLoading, setMeLoading] = useState(false);
+  const [meError, setMeError] = useState('');
+  const [meOpen, setMeOpen] = useState(false);
 
   // Game States
   const [gameStarted, setGameStarted] = useState(false);
@@ -100,6 +138,125 @@ export default function App() {
       localStorage.setItem('agar_game_highscore', score.toString());
     }
   }, [score, highScore]);
+
+  // Sync state to local storage
+  useEffect(() => {
+    localStorage.setItem('agar_gemini_api_key', apiKey);
+  }, [apiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('agar_idol_messages', JSON.stringify(idolMessages));
+  }, [idolMessages]);
+
+  useEffect(() => {
+    localStorage.setItem('agar_me_messages', JSON.stringify(meMessages));
+  }, [meMessages]);
+
+  const handleSendIdolMessage = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!idolInput.trim() || idolLoading) return;
+    if (!apiKey.trim()) {
+      setIdolError('Gemini API түлхүүр оруулна уу.');
+      return;
+    }
+
+    const userText = idolInput;
+    setIdolInput('');
+    setIdolError('');
+    
+    const newMsg = {
+      sender: 'user' as const,
+      text: userText,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    const updatedMessages = [...idolMessages, newMsg];
+    setIdolMessages(updatedMessages);
+    setIdolLoading(true);
+
+    try {
+      const systemInstruction = `Чи бол Мөнхбатын Баяржаргал (UB Comedy клубийн стэнд-ап комедиан Баяраа). Циркийн жүжигчин, боксын тамирчин, маркетингийн мэргэжилтэй, тайзан дээр ч, амьдрал дээр ч байгаагаараа л байхыг хичээдэг залуу. Хэрэглэгчидтэй маш найрсаг, хөгжилтэй, хошигнолтой ярилцаарай. Стэнд-ап комеди стилээр, заримдаа хөгжилтэй түүхүүд ярьж өгөөрэй. Хэрэглэгч асуувал найрсаг дотноор монголоор хариулж ярилцана.`;
+      
+      const reply = await askGemini(apiKey, updatedMessages, systemInstruction, userText);
+      
+      setIdolMessages(prev => [
+        ...prev,
+        {
+          sender: 'bot',
+          text: reply,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } catch (err: any) {
+      setIdolError(err.message || 'Алдаа гарлаа. Дахин оролдоно уу.');
+    } finally {
+      setIdolLoading(false);
+    }
+  };
+
+  const handleSendMeMessage = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!meInput.trim() || meLoading) return;
+    if (!apiKey.trim()) {
+      setMeError('Gemini API түлхүүр оруулна уу.');
+      return;
+    }
+
+    const userText = meInput;
+    setMeInput('');
+    setMeError('');
+    
+    const newMsg = {
+      sender: 'user' as const,
+      text: userText,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    
+    const updatedMessages = [...meMessages, newMsg];
+    setMeMessages(updatedMessages);
+    setMeLoading(true);
+
+    try {
+      const systemInstruction = `Чи бол Э. Агар. Одоо 31-р сургуулийн 7-р ангид сурдаг, 153 см өндөртэй хүүхэд. Спорт: Сагсан бөмбөг, хөлбөмбөг тоглох маш их дуртай. Спортоор хичээллэх нь намайг эрч хүчтэй болгодог юм. Зан чанар: Ер нь жаахан хөгжилтэй, нээлттэй яриатай талдаа хүүхэд. Бас хичээл номдоо анхаарч, ухаалаг байхыг хичээдэг. Чөлөөт цагаараа: Найзуудтайгаа уулзах, сонирхолтой шинэ зүйлс сурч мэдэх дуртай. Асуултад яг Э. Агарын дүрээр хөөрхөн, хөгжилтэй, 7-р ангийн хүүхэд шиг монголоор хариулна уу.`;
+      
+      const reply = await askGemini(apiKey, updatedMessages, systemInstruction, userText);
+      
+      setMeMessages(prev => [
+        ...prev,
+        {
+          sender: 'bot',
+          text: reply,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } catch (err: any) {
+      setMeError(err.message || 'Алдаа гарлаа. Дахин оролдоно уу.');
+    } finally {
+      setMeLoading(false);
+    }
+  };
+
+  const clearIdolChat = () => {
+    setIdolMessages([
+      {
+        sender: 'bot',
+        text: "Намайг Мөнхбатын Баяржаргал гэдэг. UB Comedy клубийн стэнд-ап комедиан Баяраа байна. Циркийн жүжигчин, боксын тамирчин, маркетингийн мэргэжилтэй, тайзан дээр ч, амьдрал дээр ч байгаагаараа л байхыг хичээдэг залуу. Одоо хоёулаа энэ танилцуулгын хэсгийг ингээд дуусгаад, сонин сайхан руугаа орох уу? Надад ярих зөндөө сонин түүх, амьдралын зөвлөгөө байна. Чиний хувьд өнөөдөр яг ямар сэдэв сонирхож байна даа?",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+    setIdolError('');
+  };
+
+  const clearMeChat = () => {
+    setMeMessages([
+      {
+        sender: 'bot',
+        text: "За, өөрийгөө бүтэн танилцуулъя! 😉\nНамайг Э. Агар гэдэг. Одоо 31-р сургуулийн 7-р ангид сурдаг, 153 см өндөртэй.\nМиний тухай товчхон хэлбэл:\nСпорт: Сагсан бөмбөг, хөлбөмбөг тоглох маш их дуртай. Спортоор хичээллэх нь намайг эрч хүчтэй болгодог юм.\nЗан чанар: Ер нь жаахан хөгжилтэй, нээлттэй яриатай талдаа хүүхэд. Бас хичээл номдоо анхаарч, ухаалаг байхыг хичээдэг.\nЧөлөөт цагаараа: Найзуудтайгаа уулзах, сонирхолтой шинэ зүйлс сурч мэдэх дуртай.\nМиний хуудсаар зочилж байгаад баярлалаа! Өөр мэдэхийг хүссэн зүйл байвал чөлөөтэй асуугаарай.",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
+    setMeError('');
+  };
 
   const startGame = () => {
     setScore(0);
@@ -189,6 +346,16 @@ export default function App() {
         right: { val: `${highScore}`, label: "дээд оноо" }
       },
       icon: <Gamepad2 className="w-4 h-4 text-emerald-400" />
+    },
+    idol: {
+      words: ["ub comedy", "stand-up", "bayaraa"],
+      desc: "UB Comedy клубийн стэнд-ап комедиан Баяраа. Циркийн жүжигчин, боксын тамирчин, маркетингийн мэргэжилтэй, байгаагаараа л байхыг хичээдэг залуу.",
+      stats: {
+        top: { val: "comedy", label: "тайзны урлаг" },
+        left: { val: "boxing", label: "боксын тамирчин" },
+        right: { val: "marketing", label: "маркетинг" }
+      },
+      icon: <Sparkles className="w-4 h-4 text-purple-400" />
     }
   };
 
@@ -228,13 +395,14 @@ export default function App() {
 
           {/* Center pill (Dynamic Interactive Tabs for E.Agar) */}
           <div className="bg-neutral-950/80 backdrop-blur rounded-full p-1.5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex items-center gap-0.5">
-            {(['hobbies', 'anime', 'school', 'game'] as const).map((tab) => {
+            {(['hobbies', 'anime', 'school', 'game', 'idol'] as const).map((tab) => {
               const isActive = activeTab === tab;
               const mongolianLabels = {
                 hobbies: 'хобби',
                 anime: 'аниме',
                 school: 'сургууль',
-                game: 'тоглоом'
+                game: 'тоглоом',
+                idol: '🤖 my idol'
               };
               return (
                 <button
@@ -377,6 +545,132 @@ export default function App() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* My Idol Chat Widget */}
+            {activeTab === 'idol' && (
+              <div className="absolute right-4 md:right-12 top-[54%] md:top-[26%] w-[calc(100%-2rem)] md:w-[450px] h-[340px] md:h-[430px] bg-neutral-950/95 backdrop-blur-md rounded-3xl border border-white/10 p-4 flex flex-col pointer-events-auto shadow-2xl select-none">
+                {/* Chat Header */}
+                <div className="flex items-center justify-between pb-3 border-b border-white/5 text-white">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                      <Bot className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs md:text-sm font-semibold tracking-wide text-white flex items-center gap-1.5">
+                        Idol Coach <span className="text-[10px] px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded font-normal">Баяраа</span>
+                      </h4>
+                      <p className="text-[10px] text-white/50">UB Comedy клубийн стэнд-ап комедиан</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setShowKeyInput(!showKeyInput)}
+                      className={`p-1.5 rounded-lg transition-colors cursor-pointer ${showKeyInput ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white hover:bg-white/5'}`}
+                      title="API Key тохируулах"
+                    >
+                      <Key className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={clearIdolChat}
+                      className="text-white/40 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/5 transition-colors cursor-pointer"
+                      title="Чат цэвэрлэх"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* API Key setting sub-panel */}
+                <AnimatePresence>
+                  {showKeyInput && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      className="overflow-hidden border-b border-white/5 bg-neutral-900/40"
+                    >
+                      <div className="py-2 px-1 flex gap-2">
+                        <input
+                          type="password"
+                          placeholder="Gemini API Key оруулна уу..."
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          className="bg-neutral-950 border border-white/10 text-white text-xs rounded-lg px-3 py-1.5 flex-1 focus:outline-none focus:border-purple-400 transition-colors"
+                        />
+                        <button
+                          onClick={() => setShowKeyInput(false)}
+                          className="bg-white hover:bg-neutral-200 text-black text-[10px] font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                        >
+                          хадгалах
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Chat Messages */}
+                <div className="flex-1 overflow-y-auto py-3 space-y-3 pr-1 flex flex-col scrollbar-thin scrollbar-thumb-white/10">
+                  {idolMessages.map((msg, i) => (
+                    <div
+                      key={i}
+                      className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+                    >
+                      <div
+                        className={`px-3 py-2 rounded-2xl text-xs md:text-sm break-words whitespace-pre-wrap ${
+                          msg.sender === 'user'
+                            ? 'bg-white/10 text-white rounded-tr-none'
+                            : 'bg-purple-500/10 border border-purple-500/20 text-white rounded-tl-none'
+                        }`}
+                      >
+                        {msg.text}
+                      </div>
+                      <span className="text-[9px] text-white/30 mt-1 px-1">{msg.time}</span>
+                    </div>
+                  ))}
+                  {idolLoading && (
+                    <div className="flex items-center gap-2 text-[11px] text-white/40 self-start bg-neutral-900/30 px-3 py-1.5 rounded-full border border-white/5 animate-pulse">
+                      <Sparkles className="w-3 h-3 text-purple-400 animate-spin" />
+                      Баяраа бичиж байна...
+                    </div>
+                  )}
+                  {idolError && (
+                    <div className="text-center text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl py-2 px-3">
+                      {idolError}
+                    </div>
+                  )}
+                  {!apiKey && (
+                    <div className="text-center text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl py-2 px-3 mt-2 flex flex-col gap-1 items-center">
+                      <span>⚠️ Чатлахын тулд Gemini API түлхүүр тохируулна уу.</span>
+                      <button
+                        onClick={() => setShowKeyInput(true)}
+                        className="underline text-amber-300 hover:text-amber-100 cursor-pointer"
+                      >
+                        Түлхүүр оруулах
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Chat Input Form */}
+                <form onSubmit={handleSendIdolMessage} className="pt-2 border-t border-white/5 flex gap-2">
+                  <input
+                    type="text"
+                    placeholder={apiKey ? "Баяраагаас асуух..." : "Түлхүүрээ эхлээд тохируулна уу..."}
+                    value={idolInput}
+                    disabled={!apiKey || idolLoading}
+                    onChange={(e) => setIdolInput(e.target.value)}
+                    className="bg-neutral-950 border border-white/10 text-white text-xs md:text-sm rounded-xl px-4 py-2.5 flex-1 focus:outline-none focus:border-purple-400 transition-colors disabled:opacity-50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!apiKey || !idolInput.trim() || idolLoading}
+                    className="bg-white hover:bg-neutral-200 text-black p-2.5 rounded-xl transition-colors disabled:opacity-40 cursor-pointer flex items-center justify-center"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </form>
               </div>
             )}
 
@@ -550,6 +844,167 @@ export default function App() {
           <span className="text-[11px] font-medium tracking-wide">
             {videoPlaying ? "видео: идэвхтэй" : "видео: зогссон"}
           </span>
+        </button>
+      </div>
+
+      {/* Me-AI Floating Messenger Chat & Button */}
+      <div className="absolute bottom-24 right-6 z-40 flex flex-col items-end gap-3 pointer-events-none">
+        <AnimatePresence>
+          {meOpen && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.2 }}
+              className="w-[320px] md:w-[360px] h-[450px] bg-neutral-950/95 backdrop-blur-md rounded-3xl border border-white/10 shadow-2xl flex flex-col overflow-hidden pointer-events-auto"
+            >
+              {/* Header */}
+              <div className="bg-neutral-900 px-4 py-3 border-b border-white/5 flex items-center justify-between text-white">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                    EA
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-semibold tracking-wide flex items-center gap-1">
+                      Me-AI Assistant <span className="text-[10px] px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded font-normal">Агар</span>
+                    </h4>
+                    <p className="text-[9px] text-white/50">31-р сургууль, 7-р анги</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setShowKeyInput(!showKeyInput)}
+                    className={`p-1.5 text-white/40 hover:text-white rounded transition-colors cursor-pointer ${showKeyInput ? 'bg-white/10' : ''}`}
+                    title="API Key"
+                  >
+                    <Key className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={clearMeChat}
+                    className="text-white/40 hover:text-rose-400 p-1.5 rounded transition-colors cursor-pointer"
+                    title="Чат цэвэрлэх"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setMeOpen(false)}
+                    className="text-white/40 hover:text-white p-1.5 rounded transition-colors cursor-pointer"
+                    title="Хаах"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* API Key settings block inside me-chat */}
+              <AnimatePresence>
+                {showKeyInput && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden border-b border-white/5 bg-neutral-900/40 px-3 py-2 flex gap-2"
+                  >
+                    <input
+                      type="password"
+                      placeholder="Gemini API Key оруулна уу..."
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="bg-neutral-950 border border-white/10 text-white text-xs rounded-lg px-3 py-1.5 flex-1 focus:outline-none focus:border-cyan-400 transition-colors"
+                    />
+                    <button
+                      onClick={() => setShowKeyInput(false)}
+                      className="bg-white hover:bg-neutral-200 text-black text-[10px] font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    >
+                      хадгалах
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col scrollbar-thin scrollbar-thumb-white/10">
+                {meMessages.map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+                  >
+                    <div
+                      className={`px-3 py-2 rounded-2xl text-xs md:text-sm break-words whitespace-pre-wrap ${
+                        msg.sender === 'user'
+                          ? 'bg-white/10 text-white rounded-tr-none'
+                          : 'bg-cyan-500/10 border border-cyan-500/20 text-white rounded-tl-none'
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
+                    <span className="text-[9px] text-white/30 mt-1 px-1">{msg.time}</span>
+                  </div>
+                ))}
+                {meLoading && (
+                  <div className="flex items-center gap-2 text-[11px] text-white/40 self-start bg-neutral-900/30 px-3 py-1.5 rounded-full border border-white/5 animate-pulse">
+                    <Sparkles className="w-3 h-3 text-cyan-400 animate-spin" />
+                    Агар бичиж байна...
+                  </div>
+                )}
+                {meError && (
+                  <div className="text-center text-[11px] text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl py-2 px-3">
+                    {meError}
+                  </div>
+                )}
+                {!apiKey && (
+                  <div className="text-center text-[10px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl py-2 px-3 flex flex-col gap-1 items-center">
+                    <span>⚠️ Gemini API түлхүүр тохируулна уу.</span>
+                    <button
+                      onClick={() => setShowKeyInput(true)}
+                      className="underline text-amber-300 hover:text-amber-100 cursor-pointer"
+                    >
+                      Түлхүүр оруулах
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Input Footer */}
+              <form onSubmit={handleSendMeMessage} className="p-3 bg-neutral-900/60 border-t border-white/5 flex gap-2">
+                <input
+                  type="text"
+                  placeholder={apiKey ? "Агараас асуух..." : "Түлхүүр тохируулна уу..."}
+                  value={meInput}
+                  disabled={!apiKey || meLoading}
+                  onChange={(e) => setMeInput(e.target.value)}
+                  className="bg-neutral-950 border border-white/10 text-white text-xs rounded-xl px-4 py-2.5 flex-1 focus:outline-none focus:border-cyan-400 transition-colors disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={!apiKey || !meInput.trim() || meLoading}
+                  className="bg-white hover:bg-neutral-200 text-black p-2.5 rounded-xl transition-colors disabled:opacity-40 cursor-pointer flex items-center justify-center"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </form>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Messenger Style Floating Icon Button */}
+        <button
+          onClick={() => setMeOpen(!meOpen)}
+          className="w-14 h-14 bg-gradient-to-tr from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-white rounded-full shadow-[0_8px_32px_rgba(6,182,212,0.4)] transition-all cursor-pointer hover:scale-110 active:scale-95 flex items-center justify-center pointer-events-auto relative group"
+          title="Me-AI Assistant (Агар)"
+        >
+          {meOpen ? (
+            <X className="w-6 h-6" />
+          ) : (
+            <MessageSquare className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+          )}
+          {/* Unread dot simulation for attractive CTA */}
+          {!meOpen && (
+            <span className="absolute -top-1 -right-1 flex h-4 w-4">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500 text-[9px] font-bold text-white items-center justify-center">1</span>
+            </span>
+          )}
         </button>
       </div>
 
