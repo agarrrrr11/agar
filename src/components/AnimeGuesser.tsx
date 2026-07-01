@@ -509,13 +509,13 @@ export default function AnimeGuesser({ onClose }: { onClose?: () => void }) {
                 </motion.span>
               </div>
 
-              {/* Image Poster Clue */}
+              {/* Image Poster Clue (Zoom-cropped to hide top/bottom text spoilers) */}
               <div className="col-span-3 rounded-2xl overflow-hidden border border-white/10 bg-neutral-900 flex flex-col relative group">
                 <img
                   src={currentQuestion.image}
                   alt="Anime Hint"
                   referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  className="absolute inset-x-0 top-1/2 -translate-y-1/2 w-full h-[185%] object-cover group-hover:scale-110 transition-transform duration-500"
                 />
                 <div className="absolute top-2 left-2 z-10 bg-black/60 backdrop-blur-sm rounded-md px-2 py-1 text-[9px] text-white/80 flex items-center gap-1.5">
                   <Film className="w-3 h-3 text-rose-400" />
