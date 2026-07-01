@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Trash2, Edit2, Play, Pause, Compass, Heart, GraduationCap, Gamepad2, Volume2, VolumeX, Sparkles, MessageSquare, Bot, Send, Key, X, RefreshCw } from 'lucide-react';
 import { askGemini } from './lib/gemini';
+import AnimeGuesser from './components/AnimeGuesser';
 
 interface Anime {
   id: string;
@@ -12,7 +13,7 @@ interface Anime {
 
 export default function App() {
   const [videoPlaying, setVideoPlaying] = useState(true);
-  const [activeTab, setActiveTab] = useState<'hobbies' | 'anime' | 'school' | 'game' | 'idol'>('hobbies');
+  const [activeTab, setActiveTab] = useState<'hobbies' | 'anime' | 'anime_guesser' | 'school' | 'game' | 'idol'>('hobbies');
   const [showAnimeModal, setShowAnimeModal] = useState(false);
   const [animeList, setAnimeList] = useState<Anime[]>(() => {
     const saved = localStorage.getItem('agar_anime_list');
@@ -327,6 +328,16 @@ export default function App() {
       },
       icon: <Heart className="w-4 h-4 text-rose-400" />
     },
+    anime_guesser: {
+      words: ["emoji", "anime", "guesser"],
+      desc: "эможигоор аниме таах сонирхолтой асуулт хариултын тоглоом. асуулт бүр 15 сек хугацаатай бөгөөд 3 амьтай.",
+      stats: {
+        top: { val: "guesser", label: "аниме таах" },
+        left: { val: "10 асуулт", label: "сорилт" },
+        right: { val: "active", label: "тоглоом" }
+      },
+      icon: <Sparkles className="w-4 h-4 text-rose-400" />
+    },
     school: {
       words: ["school", "number", "thirty-one"],
       desc: "би 31-р сургуульд сурдаг. энд миний сурлага хөдөлмөр, сургуулийн амьдрал болон өдөр тутмын тэмдэглэл бий.",
@@ -379,7 +390,7 @@ export default function App() {
       <div className="absolute inset-0 bg-radial-at-c from-transparent via-black/30 to-black/90 pointer-events-none" />
 
       {/* Floating pill-shaped Navbar */}
-      <header className="absolute z-20 px-6 md:px-10 pt-6 top-0 left-0 right-0">
+      <header className={`absolute z-20 px-6 md:px-10 pt-6 top-0 left-0 right-0 ${activeTab === 'anime_guesser' ? 'hidden' : ''}`}>
         <nav className="flex items-center justify-between gap-4 max-w-7xl mx-auto">
           {/* Left pill (Securify Logo transformed to Agar's Dev Hub) */}
           <div className="flex items-center gap-2 bg-neutral-950/80 backdrop-blur rounded-full pl-4 pr-5 py-2.5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)]">
@@ -395,11 +406,12 @@ export default function App() {
 
           {/* Center pill (Dynamic Interactive Tabs for E.Agar) */}
           <div className="bg-neutral-950/80 backdrop-blur rounded-full p-1.5 border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.5)] flex items-center gap-0.5">
-            {(['hobbies', 'anime', 'school', 'game', 'idol'] as const).map((tab) => {
+            {(['hobbies', 'anime', 'anime_guesser', 'school', 'game', 'idol'] as const).map((tab) => {
               const isActive = activeTab === tab;
               const mongolianLabels = {
                 hobbies: 'хобби',
                 anime: 'аниме',
+                anime_guesser: 'таавар',
                 school: 'сургууль',
                 game: 'тоглоом',
                 idol: '🤖 my idol'
@@ -450,33 +462,39 @@ export default function App() {
             className="absolute inset-0"
           >
             {/* Three giant staggered headline words */}
-            <h1 className="hero-title absolute text-white font-medium text-[14vw] md:text-[13vw] left-4 md:left-10 top-[18%] select-none tracking-tighter filter drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-              {current.words[0]}
-            </h1>
+            {activeTab !== 'anime_guesser' && (
+              <>
+                <h1 className="hero-title absolute text-white font-medium text-[14vw] md:text-[13vw] left-4 md:left-10 top-[18%] select-none tracking-tighter filter drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+                  {current.words[0]}
+                </h1>
 
-            <h1 className="hero-title absolute text-white font-medium text-[14vw] md:text-[13vw] right-4 md:right-10 top-[38%] select-none tracking-tighter text-right filter drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-              {current.words[1]}
-            </h1>
+                <h1 className="hero-title absolute text-white font-medium text-[14vw] md:text-[13vw] right-4 md:right-10 top-[38%] select-none tracking-tighter text-right filter drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+                  {current.words[1]}
+                </h1>
 
-            <h1 className="hero-title absolute text-white font-medium text-[14vw] md:text-[13vw] left-[18%] md:left-[28%] top-[58%] select-none tracking-tighter filter drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
-              {current.words[2]}
-            </h1>
+                <h1 className="hero-title absolute text-white font-medium text-[14vw] md:text-[13vw] left-[18%] md:left-[28%] top-[58%] select-none tracking-tighter filter drop-shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+                  {current.words[2]}
+                </h1>
+              </>
+            )}
 
             {/* Description paragraph */}
-            <div className="absolute left-6 md:left-10 top-[46%] max-w-[280px] select-none pointer-events-auto">
-              <p className="text-[14px] md:text-[15px] leading-relaxed text-white/95 font-light">
-                {current.desc}
-              </p>
-              {activeTab === 'anime' && (
-                <button
-                  onClick={() => setShowAnimeModal(true)}
-                  className="mt-4 flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium px-4 py-2 rounded-full backdrop-blur border border-white/10 transition-all cursor-pointer active:scale-95"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  жагсаалт харах / нэмэх
-                </button>
-              )}
-            </div>
+            {activeTab !== 'anime_guesser' && (
+              <div className="absolute left-6 md:left-10 top-[46%] max-w-[280px] select-none pointer-events-auto">
+                <p className="text-[14px] md:text-[15px] leading-relaxed text-white/95 font-light">
+                  {current.desc}
+                </p>
+                {activeTab === 'anime' && (
+                  <button
+                    onClick={() => setShowAnimeModal(true)}
+                    className="mt-4 flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium px-4 py-2 rounded-full backdrop-blur border border-white/10 transition-all cursor-pointer active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    жагсаалт харах / нэмэх
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Cyber Defense Game Widget */}
             {activeTab === 'game' && (
@@ -545,6 +563,55 @@ export default function App() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Anime Collection List Widget */}
+            {activeTab === 'anime' && (
+              <div className="absolute right-4 md:right-12 top-[54%] md:top-[24%] w-[calc(100%-2rem)] md:w-[420px] h-[370px] md:h-[450px] bg-neutral-950/95 backdrop-blur-md rounded-3xl border border-white/10 p-5 flex flex-col pointer-events-auto shadow-2xl select-none">
+                <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                  <div>
+                    <h4 className="text-xs md:text-sm font-semibold text-white tracking-wide uppercase">аниме жагсаалт 💮</h4>
+                    <p className="text-[10px] text-white/50">агарын хамгийн дуртай цувралууд</p>
+                  </div>
+                  <button
+                    onClick={() => setShowAnimeModal(true)}
+                    className="bg-white hover:bg-neutral-200 text-black text-[10px] font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    удирдах
+                  </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto mt-3 space-y-2.5 pr-1 scrollbar-thin scrollbar-thumb-white/10">
+                  {animeList.map((anime) => (
+                    <div
+                      key={anime.id}
+                      className="bg-white/[0.03] border border-white/5 p-3 rounded-2xl flex items-center justify-between hover:bg-white/[0.06] transition-colors"
+                    >
+                      <div className="flex-1 min-w-0 pr-2">
+                        <h5 className="text-white text-xs font-semibold truncate capitalize">{anime.title}</h5>
+                        <p className="text-[9px] text-white/40 truncate">{anime.genre}</p>
+                      </div>
+                      <span className="text-[10px] font-bold bg-rose-500/10 border border-rose-500/20 text-rose-400 px-2 py-1 rounded-lg">
+                        {anime.rating}
+                      </span>
+                    </div>
+                  ))}
+                  {animeList.length === 0 && (
+                    <div className="flex flex-col items-center justify-center text-center py-12 text-white/30">
+                      <p className="text-xs">жагсаалт хоосон байна</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Anime Guesser Game Widget */}
+            {activeTab === 'anime_guesser' && (
+              <div className="fixed inset-0 z-50 w-full h-full bg-neutral-950/98 backdrop-blur-xl p-4 md:p-8 flex flex-col pointer-events-auto overflow-y-auto select-none animate-fade-in">
+                <div className="max-w-4xl mx-auto w-full flex-1 flex flex-col pt-8 pb-4">
+                  <AnimeGuesser onClose={() => setActiveTab('hobbies')} />
+                </div>
               </div>
             )}
 

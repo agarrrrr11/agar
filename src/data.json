@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "emojis": "🪚🐶🩸😈🏢",
+    "answer": "Chainsaw Man",
+    "options": ["Chainsaw Man", "Jujutsu Kaisen", "Dorohedoro", "Devilman Crybaby"],
+    "image": "https://cdn.myanimelist.net/images/anime/1806/126216.jpg",
+    "video": "v4yLeNt-kCU"
+  },
+  {
+    "id": 2,
+    "emojis": "🦾👦🛡️✨🔁",
+    "answer": "Fullmetal Alchemist",
+    "options": ["Fullmetal Alchemist", "Fairy Tail", "The Seven Deadly Sins", "Soul Eater"],
+    "image": "https://cdn.myanimelist.net/images/anime/1223/96541.jpg",
+    "video": "elyXcwunIYA"
+  },
+  {
+    "id": 3,
+    "emojis": "⚔️🏰👾💀🌌",
+    "answer": "Solo Leveling",
+    "options": ["Solo Leveling", "Sword Art Online", "Overlord", "Tower of God"],
+    "image": "https://cdn.myanimelist.net/images/anime/1047/140733.jpg",
+    "video": "XqD0oCHLIF8"
+  },
+  {
+    "id": 4,
+    "emojis": "☄️🌌🧑‍🤝‍🧑✏️⌚",
+    "answer": "Your Name",
+    "options": ["A Silent Voice", "Your Name", "Weathering With You", "5 Centimeters per Second"],
+    "image": "https://cdn.myanimelist.net/images/anime/5/87048.jpg",
+    "video": "-pHfPJGatgE"
+  },
+  {
+    "id": 5,
+    "emojis": "🕵️‍♂️👩‍🦰👧🥜🦁",
+    "answer": "Spy x Family",
+    "options": ["Spy x Family", "Kaguya-sama: Love is War", "Buddy Daddies", "The Way of the Househusband"],
+    "image": "https://cdn.myanimelist.net/images/anime/1441/122795.jpg",
+    "video": "A09BpNf_xqE"
+  },
+  {
+    "id": 6,
+    "emojis": "🦾🌌🚀🔋🚕",
+    "answer": "Cyberpunk: Edgerunners",
+    "options": ["Cyberpunk: Edgerunners", "Neon Genesis Evangelion", "Akira", "Psycho-Pass"],
+    "image": "https://cdn.myanimelist.net/images/anime/1814/128650.jpg",
+    "video": "QBlPg818lGI"
+  },
+  {
+    "id": 7,
+    "emojis": "☕🎭🩸🧑‍🦳☕",
+    "answer": "Tokyo Ghoul",
+    "options": ["Tokyo Ghoul", "Parasyte", "Devilman Crybaby", "Chainsaw Man"],
+    "image": "https://cdn.myanimelist.net/images/anime/5/64449.jpg",
+    "video": "7aMOurgDB-o"
+  },
+  {
+    "id": 8,
+    "emojis": "⚔️🎭💀🦋🥀",
+    "answer": "Bleach",
+    "options": ["Bleach", "Naruto", "One Piece", "Soul Eater"],
+    "image": "https://cdn.myanimelist.net/images/anime/1517/128224.jpg",
+    "video": "OgyORlzV0uw"
+  },
+  {
+    "id": 9,
+    "emojis": "🏐🦅🧡🎒👟",
+    "answer": "Haikyu!!",
+    "options": ["Haikyu!!", "Kuroko's Basketball", "Blue Lock", "Slam Dunk"],
+    "image": "https://cdn.myanimelist.net/images/anime/7/76014.jpg",
+    "video": "VKviyEGvb94"
+  },
+  {
+    "id": 10,
+    "emojis": "⏳🔬📱🍌📻",
+    "answer": "Steins;Gate",
+    "options": ["Steins;Gate", "Re:Zero", "Erased", "No Game No Life"],
+    "image": "https://cdn.myanimelist.net/images/anime/15/30821.jpg",
+    "video": "1FPdtR_5KFo"
+  }
+]
